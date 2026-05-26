@@ -41,8 +41,8 @@ export class MotifEngine {
     }
 
     this.synthesisEngine = new SynthesisEngine(this.audioContext, this.config);
-    this.lastInputEvents = events.map((e) => ({ ...e }));
-    this.lastTransformMode = transformMode;
+    this.lastInputEvents = [];
+    this.lastGeneratedEvents = [];
 
     if (transformMode === 'passthrough') {
       // Direct playback mode - play MIDI as-is without transformations
@@ -67,6 +67,8 @@ export class MotifEngine {
       }];
 
       this.synthesisEngine.setupLayers(passthroughAssignment);
+      this.lastInputEvents = events.map((e) => ({ ...e }));
+      this.lastTransformMode = transformMode;
       this.lastGeneratedEvents = passthroughAssignment.flatMap((a) => a.events.map((e) => ({ ...e })));
       console.log('Motif: Passthrough mode - playing original MIDI patterns');
     } else {
@@ -74,6 +76,8 @@ export class MotifEngine {
       const features = this.midiProcessor.extractFeatures(events);
       const roleAssignments = this.roleMapper.assignRoles(features, events);
       this.synthesisEngine.setupLayers(roleAssignments);
+      this.lastInputEvents = events.map((e) => ({ ...e }));
+      this.lastTransformMode = transformMode;
       this.lastGeneratedEvents = roleAssignments.flatMap((a) => a.events.map((e) => ({ ...e })));
       console.log('Motif: Procedural mode - transforming MIDI with role mapping');
     }

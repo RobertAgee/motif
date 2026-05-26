@@ -38,7 +38,7 @@ export function noteEventsToMidiBytes(events: NoteEvent[], ppq = 480, bpm = 120)
     const startTick = Math.max(0, Math.round(e.time * ticksPerSec));
     const endTick = Math.max(startTick + 1, Math.round((e.time + e.duration) * ticksPerSec));
     const pitch = clamp(Math.round(e.pitch), 0, 127);
-    const vel = clamp(Math.round((e.velocity || 0.7) * 127), 1, 127);
+    const vel = clamp(Math.round((e.velocity ?? 0.7) * 127), 1, 127);
     midiEvents.push({ tick: startTick, on: true, pitch, velocity: vel });
     midiEvents.push({ tick: endTick, on: false, pitch, velocity: 0 });
   }

@@ -10,6 +10,7 @@ type CurrentSource =
   | { type: 'upload'; fileName: string };
 
 class MotifApp {
+  private static readonly MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
   private motifEngine: MotifEngine;
   private midiService: MIDIService;
 
@@ -254,6 +255,8 @@ class MotifApp {
     this.motifResumeProgress = 0;
     this.currentMIDI = null;
     this.currentSource = null;
+    this.searchResults = [];
+    this.selectedResultIndex = 0;
 
     this.setState('idle');
     this.updateStatus('Ready. Search any song to make a Game Boy version.');
@@ -348,12 +351,14 @@ class MotifApp {
     console.log('[MotifApp] Starting search for:', songName);
     this.searchBtn.disabled = true;
     this.currentSource = null;
+    this.searchResults = [];
     this.setState('idle');
 
     try {
       const results = await this.midiService.search(songName);
       
       if (results.length === 0) {
+        this.searchResults = [];
         this.updateStatus('No MIDI files found. Try a different search.');
         return;
       }
@@ -393,7 +398,7 @@ class MotifApp {
   private async handleUploadedMIDI(file: File): Promise<void> {
     const lowerName = file.name.toLowerCase();
     const validExt = lowerName.endsWith('.mid') || lowerName.endsWith('.midi');
-    const validType = file.type === '' || file.type === 'audio/midi' || file.type === 'audio/x-midi';
+    const validType = file.type === 'audio/midi' || file.type === 'audio/x-midi';
     if (!validExt && !validType) {
       this.updateStatus('Upload error: Please choose a .mid or .midi file.');
       return;
@@ -403,11 +408,10 @@ class MotifApp {
       this.updateStatus('Upload error: File is empty or unreadable.');
       return;
     }
-
-    this.handleMotifStop();
-    this.stopPreview();
-    this.hasGenerated = false;
-    this.disablePlayerControls();
+    if (file.size > MotifApp.MAX_UPLOAD_BYTES) {
+      this.updateStatus('Upload error: File exceeds 10MB max size.');
+      return;
+    }
     this.updateStatus('Loading uploaded MIDI…');
 
     try {
@@ -427,6 +431,10 @@ class MotifApp {
         actualDuration = Math.max(...events.map((e) => e.time + e.duration));
       }
 
+      this.handleMotifStop();
+      this.stopPreview();
+      this.hasGenerated = false;
+      this.disablePlayerControls();
       this.currentMIDI = { events, metadata: { ...metadata, duration: actualDuration } };
       this.currentSource = { type: 'upload', fileName: file.name };
       this.selectedTitle.textContent = this.cleanSongTitle(file.name);
